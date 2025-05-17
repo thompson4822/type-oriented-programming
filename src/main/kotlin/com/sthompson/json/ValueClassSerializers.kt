@@ -7,8 +7,7 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.SerializerProvider
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer
 import com.fasterxml.jackson.databind.ser.std.StdSerializer
-import com.sthompson.domain.Email
-import com.sthompson.domain.Phone
+import com.sthompson.domain.*
 
 // Phone serialization
 class PhoneSerializer : StdSerializer<Phone>(Phone::class.java) {
@@ -56,6 +55,52 @@ class EmailDeserializer : StdDeserializer<Email>(Email::class.java) {
             Email.create(value)
         } catch (e: IllegalArgumentException) {
             throw ctxt.weirdStringException(p.valueAsString, Email::class.java, e.message)
+        }
+    }
+}
+
+// PostalCode serialization
+class PostalCodeSerializer : StdSerializer<PostalCode>(PostalCode::class.java) {
+    override fun serialize(value: PostalCode, gen: JsonGenerator, provider: SerializerProvider) {
+        gen.writeString(value.value)
+    }
+}
+
+class PostalCodeDeserializer : StdDeserializer<PostalCode>(PostalCode::class.java) {
+    override fun deserialize(p: JsonParser, ctxt: DeserializationContext): PostalCode {
+        return try {
+            val node = p.codec.readTree<JsonNode>(p)
+            val value = when {
+                node.isTextual -> node.textValue()
+                node.has("value") -> node.get("value").textValue()
+                else -> throw ctxt.weirdStringException(node.toString(), PostalCode::class.java, "Expected string or object with 'value' field")
+            }
+            PostalCode.create(value)
+        } catch (e: IllegalArgumentException) {
+            throw ctxt.weirdStringException(p.valueAsString, PostalCode::class.java, e.message)
+        }
+    }
+}
+
+// CountryCode serialization
+class CountryCodeSerializer : StdSerializer<CountryCode>(CountryCode::class.java) {
+    override fun serialize(value: CountryCode, gen: JsonGenerator, provider: SerializerProvider) {
+        gen.writeString(value.value)
+    }
+}
+
+class CountryCodeDeserializer : StdDeserializer<CountryCode>(CountryCode::class.java) {
+    override fun deserialize(p: JsonParser, ctxt: DeserializationContext): CountryCode {
+        return try {
+            val node = p.codec.readTree<JsonNode>(p)
+            val value = when {
+                node.isTextual -> node.textValue()
+                node.has("value") -> node.get("value").textValue()
+                else -> throw ctxt.weirdStringException(node.toString(), CountryCode::class.java, "Expected string or object with 'value' field")
+            }
+            CountryCode.create(value)
+        } catch (e: IllegalArgumentException) {
+            throw ctxt.weirdStringException(p.valueAsString, CountryCode::class.java, e.message)
         }
     }
 }

@@ -1,7 +1,6 @@
 package com.sthompson.resource
 
-import com.sthompson.domain.Email
-import com.sthompson.domain.Phone
+import com.sthompson.domain.*
 import jakarta.ws.rs.BadRequestException
 import jakarta.ws.rs.ext.ParamConverter
 import jakarta.ws.rs.ext.ParamConverterProvider
@@ -10,7 +9,7 @@ import java.lang.reflect.Type
 
 @Provider
 class ValueClassParamConverterProvider : ParamConverterProvider {
-    
+
     @Suppress("UNCHECKED_CAST")
     override fun <T> getConverter(
         rawType: Class<T>,
@@ -20,6 +19,8 @@ class ValueClassParamConverterProvider : ParamConverterProvider {
         return when (rawType) {
             Email::class.java -> EmailParamConverter() as ParamConverter<T>
             Phone::class.java -> PhoneParamConverter() as ParamConverter<T>
+            PostalCode::class.java -> PostalCodeParamConverter() as ParamConverter<T>
+            CountryCode::class.java -> CountryCodeParamConverter() as ParamConverter<T>
             else -> null
         }
     }
@@ -31,7 +32,7 @@ class ValueClassParamConverterProvider : ParamConverterProvider {
 
     private class EmailParamConverter : TypedParamConverter<Email> {
         override val targetType: Class<Email> = Email::class.java
-        
+
         override fun fromString(value: String?): Email {
             return try {
                 requireNotNull(value) { "Email cannot be null" }
@@ -48,7 +49,7 @@ class ValueClassParamConverterProvider : ParamConverterProvider {
 
     private class PhoneParamConverter : TypedParamConverter<Phone> {
         override val targetType: Class<Phone> = Phone::class.java
-        
+
         override fun fromString(value: String?): Phone {
             return try {
                 requireNotNull(value) { "Phone cannot be null" }
@@ -60,6 +61,40 @@ class ValueClassParamConverterProvider : ParamConverterProvider {
 
         override fun toString(value: Phone?): String {
             return value?.value ?: throw BadRequestException("Phone cannot be null")
+        }
+    }
+
+    private class PostalCodeParamConverter : TypedParamConverter<PostalCode> {
+        override val targetType: Class<PostalCode> = PostalCode::class.java
+
+        override fun fromString(value: String?): PostalCode {
+            return try {
+                requireNotNull(value) { "Postal code cannot be null" }
+                PostalCode.create(value)
+            } catch (e: IllegalArgumentException) {
+                throw BadRequestException("Invalid postal code format: ${value?.take(20)}", e)
+            }
+        }
+
+        override fun toString(value: PostalCode?): String {
+            return value?.value ?: throw BadRequestException("Postal code cannot be null")
+        }
+    }
+
+    private class CountryCodeParamConverter : TypedParamConverter<CountryCode> {
+        override val targetType: Class<CountryCode> = CountryCode::class.java
+
+        override fun fromString(value: String?): CountryCode {
+            return try {
+                requireNotNull(value) { "Country code cannot be null" }
+                CountryCode.create(value)
+            } catch (e: IllegalArgumentException) {
+                throw BadRequestException("Invalid country code format: ${value?.take(20)}", e)
+            }
+        }
+
+        override fun toString(value: CountryCode?): String {
+            return value?.value ?: throw BadRequestException("Country code cannot be null")
         }
     }
 }
