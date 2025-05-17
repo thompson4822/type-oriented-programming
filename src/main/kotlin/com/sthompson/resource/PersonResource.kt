@@ -18,14 +18,14 @@ class PersonResource {
     @GET
     fun getAll(): List<PersonDto> =
         Person.listAll().map {
-            PersonDto(it.id, it.name, it.getEmail(), it.getPhone())
+            PersonDto(it.id, it.name, it.email, it.phone)
         }
 
     @GET
     @Path("/{id}")
     fun getById(@PathParam("id") id: Long): Response {
         val person = Person.findById(id) ?: return Response.status(Response.Status.NOT_FOUND).build()
-        return Response.ok(PersonDto(person.id, person.name, person.getEmail(), person.getPhone())).build()
+        return Response.ok(PersonDto(person.id, person.name, person.email, person.phone)).build()
     }
 
     @POST
@@ -33,8 +33,8 @@ class PersonResource {
     fun create(dto: PersonDto): Response {
         val person = Person().apply {
             name = dto.name
-            setEmail(dto.email)
-            setPhone(dto.phone)
+            email = dto.email
+            phone = dto.phone
         }
         person.persist()
 
@@ -42,7 +42,7 @@ class PersonResource {
             UriBuilder.fromResource(PersonResource::class.java)
                 .path(person.id.toString())
                 .build()
-        ).entity(PersonDto(person.id, person.name, person.getEmail(), person.getPhone())).build()
+        ).entity(PersonDto(person.id, person.name, person.email, person.phone)).build()
     }
 
     @GET
@@ -53,7 +53,7 @@ class PersonResource {
                 .entity(mapOf("message" to "No person found with email ${email.value}"))
                 .build()
 
-        return Response.ok(PersonDto(person.id, person.name, person.getEmail(), person.getPhone())).build()
+        return Response.ok(PersonDto(person.id, person.name, person.email, person.phone)).build()
     }
 
     @GET
@@ -64,6 +64,6 @@ class PersonResource {
                 .entity(mapOf("message" to "No person found with phone ${phone.value}"))
                 .build()
 
-        return Response.ok(PersonDto(person.id, person.name, person.getEmail(), person.getPhone())).build()
+        return Response.ok(PersonDto(person.id, person.name, person.email, person.phone)).build()
     }
 }
