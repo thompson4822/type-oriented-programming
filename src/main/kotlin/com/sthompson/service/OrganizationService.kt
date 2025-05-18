@@ -57,7 +57,7 @@ class OrganizationService {
         // Check if name already exists
         if (Organization.findByName(dto.name) != null) {
             return OperationResult.failure(
-                FailureReason.Conflict("Organization with name '${dto.name}' already exists")
+                FailureReason.OrganizationFailure.NameAlreadyExists(dto.name)
             )
         }
 
@@ -120,7 +120,7 @@ class OrganizationService {
         if (existingMembership != null) {
             if (existingMembership.active) {
                 return OperationResult.failure(
-                    FailureReason.Conflict("Person is already a member of this organization")
+                    FailureReason.OrganizationFailure.AlreadyMember(personId, organizationId)
                 )
             } else {
                 // Reactivate the membership

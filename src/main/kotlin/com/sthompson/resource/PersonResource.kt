@@ -2,9 +2,11 @@ package com.sthompson.resource
 
 import com.sthompson.domain.Email
 import com.sthompson.domain.Phone
+import com.sthompson.domain.events.PersonEvent
 import com.sthompson.domain.result.FailureReason
 import com.sthompson.dto.PersonDto
 import com.sthompson.entity.Person
+import com.sthompson.service.EventPublisher
 import com.sthompson.service.PersonService
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
@@ -19,6 +21,9 @@ import jakarta.ws.rs.core.UriBuilder
 class PersonResource {
     @Inject
     lateinit var personService: PersonService
+
+    @Inject
+    lateinit var eventPublisher: EventPublisher
 
     @GET
     fun getAll(): List<PersonDto> =
@@ -63,8 +68,10 @@ class PersonResource {
             },
             onFailure = { reason ->
                 when (reason) {
+                    is FailureReason.PersonFailure.EmailAlreadyExists,
+                    is FailureReason.PersonFailure.PhoneAlreadyExists,
                     is FailureReason.Conflict -> Response.status(Response.Status.CONFLICT)
-                        .entity(mapOf("message" to reason.message))
+                        .entity(mapOf("message" to reason.toString()))
                         .build()
                     else -> Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                         .entity(mapOf("message" to "An error occurred"))
@@ -175,6 +182,14 @@ class PersonResource {
 
         return result.fold(
             onSuccess = { person ->
+                // Publish a verification event directly from the resource
+                // This demonstrates that events can be published from anywhere
+                val event = PersonEvent.ContactVerified.EmailVerified(
+                    personId = id,
+                    email = email
+                )
+                eventPublisher.publish(event)
+
                 Response.ok(PersonDto(person.id, person.name, person.email, person.phone)).build()
             },
             onFailure = { reason ->
@@ -182,7 +197,52 @@ class PersonResource {
                     is FailureReason.NotFound -> Response.status(Response.Status.NOT_FOUND)
                         .entity(mapOf("message" to reason.message))
                         .build()
+                    is FailureReason.PersonFailure.EmailMismatch,
                     is FailureReason.ValidationFailed -> Response.status(Response.Status.BAD_REQUEST)
+                        .entity(mapOf("message" to reason.toString()))
+                        .build()
+                    else -> Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                        .entity(mapOf("message" to "An error occurred"))
+                        .build()
+                }
+            }
+        )
+    }
+
+    /**
+     * Endpoint to verify a phone number
+     */
+    @POST
+    @Path("/{id}/verify-phone")
+    @Transactional
+    fun verifyPhone(@PathParam("id") id: Long, @QueryParam("phone") phone: Phone): Response {
+        val personResult = personService.findById(id)
+
+        return personResult.fold(
+            onSuccess = { person ->
+                if (person.phone != phone) {
+                    val mismatchReason = FailureReason.PersonFailure.PhoneMismatch(
+                        expected = person.phone,
+                        actual = phone
+                    )
+                    Response.status(Response.Status.BAD_REQUEST)
+                        .entity(mapOf("message" to mismatchReason.toString()))
+                        .build()
+                } else {
+
+                    // Publish a verification event
+                    val event = PersonEvent.ContactVerified.PhoneVerified(
+                        personId = id,
+                        phone = phone
+                    )
+                    eventPublisher.publish(event)
+
+                    Response.ok(PersonDto(person.id, person.name, person.email, person.phone)).build()
+                }
+            },
+            onFailure = { reason ->
+                when (reason) {
+                    is FailureReason.NotFound -> Response.status(Response.Status.NOT_FOUND)
                         .entity(mapOf("message" to reason.message))
                         .build()
                     else -> Response.status(Response.Status.INTERNAL_SERVER_ERROR)

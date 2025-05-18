@@ -20,7 +20,7 @@ import jakarta.ws.rs.core.UriBuilder
 class MembershipResource {
     @Inject
     lateinit var organizationService: OrganizationService
-    
+
     @POST
     @Path("/organizations/{organizationId}/members/{personId}")
     @Transactional
@@ -30,7 +30,7 @@ class MembershipResource {
         @QueryParam("role") @DefaultValue("MEMBER") role: MembershipRole
     ): Response {
         val result = organizationService.addMember(organizationId, personId, role)
-        
+
         return result.fold(
             onSuccess = { membership ->
                 Response.created(
@@ -44,8 +44,9 @@ class MembershipResource {
                     is FailureReason.NotFound -> Response.status(Response.Status.NOT_FOUND)
                         .entity(mapOf("message" to reason.message))
                         .build()
+                    is FailureReason.OrganizationFailure.AlreadyMember,
                     is FailureReason.Conflict -> Response.status(Response.Status.CONFLICT)
-                        .entity(mapOf("message" to reason.message))
+                        .entity(mapOf("message" to reason.toString()))
                         .build()
                     else -> Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                         .entity(mapOf("message" to "An error occurred"))
@@ -54,12 +55,12 @@ class MembershipResource {
             }
         )
     }
-    
+
     @GET
     @Path("/persons/{personId}/organizations")
     fun getPersonOrganizations(@PathParam("personId") personId: Long): Response {
         val result = organizationService.getPersonOrganizations(personId)
-        
+
         return result.fold(
             onSuccess = { memberships ->
                 Response.ok(memberships.map { MembershipDto.fromEntity(it) }).build()

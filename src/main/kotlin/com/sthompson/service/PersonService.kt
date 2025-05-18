@@ -66,14 +66,14 @@ class PersonService {
         // Check if email already exists
         if (dto.email != null && Person.findByEmail(dto.email) != null) {
             return OperationResult.failure(
-                FailureReason.Conflict("Person with email ${dto.email.value} already exists")
+                FailureReason.PersonFailure.EmailAlreadyExists(dto.email)
             )
         }
 
         // Check if phone already exists
         if (dto.phone != null && Person.findByPhone(dto.phone) != null) {
             return OperationResult.failure(
-                FailureReason.Conflict("Person with phone ${dto.phone.value} already exists")
+                FailureReason.PersonFailure.PhoneAlreadyExists(dto.phone)
             )
         }
 
@@ -188,7 +188,10 @@ class PersonService {
             onSuccess = { person ->
                 if (person.email != email) {
                     OperationResult.failure(
-                        FailureReason.ValidationFailed("Email ${email.value} does not match person's email")
+                        FailureReason.PersonFailure.EmailMismatch(
+                            expected = person.email,
+                            actual = email
+                        )
                     )
                 } else {
 
